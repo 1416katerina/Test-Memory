@@ -54,7 +54,7 @@ class MainApplication(ctk.CTk):
         height = self.winfo_height()
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
-        self.geometry(f'+{x}+{y}')
+        self.geometry(f"+{x}+{y}")
 
     def show_frame(self, frame_class):
         frame = self.frames[frame_class]
@@ -343,21 +343,70 @@ class BaseTestFrame(ctk.CTkFrame):
 
     def show_result_window(self, text):
         win = ctk.CTkToplevel(self)
-        win.title("Результати тесту")
-        win.geometry("600x500")
+        win.title("РЕЗУЛЬТАТИ ТЕСТУ")
+        win.geometry("900x700")
+        win.configure(fg_color=BACKGROUND_COLOR)  # Устанавливаем фон окна
 
-        textbox = ctk.CTkTextbox(win, font=ctk.CTkFont(size=16), wrap="word")
-        textbox.pack(fill="both", expand=True, padx=20, pady=20)
+        # Центрирование окна
+        win.update_idletasks()
+        width = win.winfo_width()
+        height = win.winfo_height()
+        x = (win.winfo_screenwidth() // 2) - (width // 2)
+        y = (win.winfo_screenheight() // 2) - (height // 2)
+        win.geometry(f'+{x}+{y}')
+
+        # Заголовок с иконкой (без фрейма)
+        emoji_label = ctk.CTkLabel(
+            win,
+            text="📝",
+            font=("Arial", 72),
+            text_color=BUTTON_COLOR,
+            fg_color="transparent"  # Прозрачный фон
+        )
+        emoji_label.pack(pady=(20, 0))
+
+        title = ctk.CTkLabel(
+            win,
+            text="РЕЗУЛЬТАТИ ТЕСТУ",
+            font=("Arial", 42, "bold"),
+            text_color=TEXT_COLOR,
+            fg_color="transparent"  # Прозрачный фон
+        )
+        title.pack(pady=(0, 20))
+
+        # Основное текстовое поле с белым фоном
+        textbox = ctk.CTkTextbox(
+            win,
+            font=("Arial", 32),
+            wrap="word",
+            fg_color="white",
+            text_color=TEXT_COLOR,
+            border_width=3,
+            border_color="#E0E0E0",
+            activate_scrollbars=True,
+            spacing3=15,
+            height=400,
+            width=800
+        )
+        textbox.pack(fill="both", expand=True, padx=40, pady=(0, 20))
         textbox.insert("1.0", text)
         textbox.configure(state="disabled")
 
+        # Кнопка OK
         btn = ctk.CTkButton(
             win,
             text="ОК",
             command=win.destroy,
-            font=ctk.CTkFont(size=16)
+            font=("Arial", 36, "bold"),
+            fg_color=BUTTON_COLOR,
+            hover_color=HOVER_COLOR,
+            height=80,
+            width=200,
+            corner_radius=20,
+            text_color="white"
         )
-        btn.pack(pady=10)
+        btn.pack(pady=30)
+        btn.focus_set()
 
     def reset_test(self):
         self.username = ""
