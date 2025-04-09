@@ -1,12 +1,12 @@
 import random
-from datetime import datetime
 import os
 import statistics
+from datetime import datetime
 
 # Налаштування тестів
 MIN_LENGTH = 4
 MAX_LENGTH = 10
-DISPLAY_TIME = 5000  # час показу ряду у мілісекундах (5 секунд)
+DISPLAY_TIME = 5000  # базовий час показу ряду у мілісекундах (для ряду довжиною MIN_LENGTH)
 RESULTS_FILE = "results.txt"
 
 def evaluate_level(V):
@@ -21,6 +21,13 @@ def evaluate_level(V):
 def generate_sequence(length):
     """Генерує випадковий ряд чисел заданої довжини."""
     return "".join(str(random.randint(0, 9)) for _ in range(length))
+
+def get_display_time(length):
+    """
+    Повертає час показу ряду (в мілісекундах) для заданої довжини.
+    Для кожного додаткового символу до MIN_LENGTH додається 1000 мс.
+    """
+    return DISPLAY_TIME + 1000 * (length - MIN_LENGTH)
 
 def save_result(username, test_name, result_text):
     """Зберігає результати тесту у файл."""
