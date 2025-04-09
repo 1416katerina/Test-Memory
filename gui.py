@@ -1,40 +1,38 @@
+
 import customtkinter as ctk
 from tkinter import messagebox
-from functionality import evaluate_level, generate_sequence, save_result, analyze_results
+from functionality import evaluate_level, generate_sequence, save_result, analyze_results, get_display_time
+import sys
 import os
 
-# Настройки интерфейса
+# Налаштування інтерфейсу
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
-FONT_LARGE = ("Arial", 38)  # Увеличен на 10pt
-FONT_MEDIUM = ("Arial", 32)  # Увеличен на 10pt
-FONT_SMALL = ("Arial", 28)  # Увеличен на 10pt
-BUTTON_COLOR = "#4B7BFF"  # Более насыщенный голубой
-HOVER_COLOR = "#3A6BEF"  # Темнее при наведении
+ctk.deactivate_automatic_dpi_awareness()
+
+FONT_LARGE = ("Arial", 38)
+FONT_MEDIUM = ("Arial", 32)
+FONT_SMALL = ("Arial", 28)
+BUTTON_COLOR = "#4B7BFF"
+HOVER_COLOR = "#3A6BEF"
 TEXT_COLOR = "#333333"
-BACKGROUND_COLOR = "#F5F5F5"  # Слегка серый фон для лучшего контраста
+BACKGROUND_COLOR = "#F5F5F5"
 
 
 class MainApplication(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("🧠 ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ")  # Все заглавные для лучшей читаемости
-        self.geometry("1440x1080")  # Увеличенный размер окна
-        self.minsize(1200, 900)
-
-        # Установка иконки приложения (если есть файл icon.ico)
-        try:
-            self.iconbitmap("icon.ico")
-        except:
-            pass
-
-        self.configure(fg_color=BACKGROUND_COLOR)  # Фон всего приложения
-
+        self.title("🧠 ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ")
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        self.geometry(f"{int(screen_width * 0.8)}x{int(screen_height * 0.8)}")
+        self.minsize(1000, 800)
+        self.configure(fg_color=BACKGROUND_COLOR)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         self.container = ctk.CTkFrame(self, fg_color="white", corner_radius=15)
-        self.container.grid(row=0, column=0, sticky="nsew", padx=40, pady=40)
+        self.container.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         self.container.grid_columnconfigure(0, weight=1)
         self.container.grid_rowconfigure(0, weight=1)
 
@@ -45,10 +43,15 @@ class MainApplication(ctk.CTk):
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame(MenuFrame)
-        self.center_window()
+        self.after(100, self.center_window)
+        self.bind("<Configure>", self.on_window_resize)
+
+    def on_window_resize(self, event):
+        if event.widget != self: return
+        if self.winfo_width() < 800 or self.winfo_height() < 600:
+            self.after_idle(lambda: self.geometry(f"800x600+{self.winfo_x()}+{self.winfo_y()}"))
 
     def center_window(self):
-        """Центрирование главного окна"""
         self.update_idletasks()
         width = self.winfo_width()
         height = self.winfo_height()
@@ -58,9 +61,10 @@ class MainApplication(ctk.CTk):
 
     def show_frame(self, frame_class):
         frame = self.frames[frame_class]
-        if hasattr(frame, "on_show"):
-            frame.on_show()
+        if hasattr(frame, "on_show"): frame.on_show()
         frame.tkraise()
+
+
 class MenuFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="white", corner_radius=15)
@@ -68,28 +72,15 @@ class MenuFrame(ctk.CTkFrame):
         self.create_widgets()
 
     def create_widgets(self):
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        main_frame = ctk.CTkFrame(self, fg_color="white")
+        main_frame.pack(expand=True, fill="both", padx=50, pady=50)
 
-        title_frame = ctk.CTkFrame(self, fg_color="white")
-        title_frame.grid(row=0, column=0, pady=(40, 60))
+        title_frame = ctk.CTkFrame(main_frame, fg_color="white")
+        title_frame.pack(pady=(0, 40))
 
-        # Большая иконка мозга
-        emoji_label = ctk.CTkLabel(
-            title_frame,
-            text="🧠",
-            font=("Arial", 82),
-            text_color=BUTTON_COLOR
-        )
-        emoji_label.pack(side="left", padx=20)
-
-        title = ctk.CTkLabel(
-            title_frame,
-            text="ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ",
-            font=("Arial", 42, "bold"),  # Увеличенный шрифт
-            text_color=TEXT_COLOR
-        )
-        title.pack(side="left")
+        ctk.CTkLabel(title_frame, text="🧠", font=("Arial", 82), text_color=BUTTON_COLOR).pack(side="left", padx=20)
+        ctk.CTkLabel(title_frame, text="ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ", font=("Arial", 42, "bold"),
+                     text_color=TEXT_COLOR).pack(side="left")
 
         buttons = [
             ("🔢 МЕТОД ВІДТВОРЕННЯ РЯДІВ", TestFrame1),
@@ -98,32 +89,21 @@ class MenuFrame(ctk.CTkFrame):
             ("📊 РЕЗУЛЬТАТИ", ResultsFrame),
         ]
 
-        # Кнопки с увеличенными размерами
-        for i, (text, frame_class) in enumerate(buttons, start=1):
-            button = ctk.CTkButton(
-                self,
-                text=text,
-                font=("Arial", 34, "bold"),  # Большой жирный шрифт
-                command=lambda fc=frame_class: self.controller.show_frame(fc),
-                fg_color=BUTTON_COLOR,
-                hover_color=HOVER_COLOR,
-                height=90,  # Увеличенная высота
-                width=600,  # Фиксированная ширина
-                corner_radius=20,
-                text_color="white",
-                border_width=2,
-                border_color="#FFFFFF"
-            )
-            button.grid(row=i, column=0, pady=25, padx=150, sticky="ew")
+        button_frame = ctk.CTkFrame(main_frame, fg_color="white")
+        button_frame.pack(expand=True, fill="both")
 
-        # Добавим подсказку внизу
-        hint_label = ctk.CTkLabel(
-            self,
-            text="Оберіть тест або перегляньте результати",
-            font=("Arial", 28),
-            text_color="#666666"
-        )
-        hint_label.grid(row=len(buttons)+1, column=0, pady=(40, 20))
+        for text, frame_class in buttons:
+            btn = ctk.CTkButton(
+                button_frame, text=text, font=("Arial", 34, "bold"),
+                command=lambda fc=frame_class: self.controller.show_frame(fc),
+                fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR,
+                height=90, width=600, corner_radius=20,
+                text_color="white", border_width=2, border_color="#FFFFFF"
+            )
+            btn.pack(pady=15, fill="x")
+
+        ctk.CTkLabel(main_frame, text="Оберіть тест або перегляньте результати",
+                     font=("Arial", 28), text_color="#666666").pack(pady=(20, 0))
 
 
 class BaseTestFrame(ctk.CTkFrame):
@@ -135,50 +115,29 @@ class BaseTestFrame(ctk.CTkFrame):
         self.current_length = 4
         self.results = {}
         self.current_sequence = ""
-        self.remaining_time = 5
+        self.remaining_time = get_display_time(self.current_length) // 1000
         self.timer_id = None
-
         self.create_widgets()
 
     def create_widgets(self):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        self.header = ctk.CTkLabel(
-            self,
-            text=self.test_name,
-            font=FONT_LARGE,
-            text_color=TEXT_COLOR
-        )
-        self.header.grid(row=0, column=0, pady=(20, 30))
+        ctk.CTkLabel(self, text=self.test_name, font=FONT_LARGE, text_color=TEXT_COLOR).grid(row=0, column=0,
+                                                                                             pady=(20, 30))
 
         self.name_frame = ctk.CTkFrame(self, fg_color="white")
-        self.name_label = ctk.CTkLabel(
-            self.name_frame,
-            text="✏️ Введіть Ваше ім'я:",
-            font=FONT_MEDIUM,
-            text_color=TEXT_COLOR
-        )
-        self.name_label.pack(side="left", padx=10)
+        ctk.CTkLabel(self.name_frame, text="✏️ Введіть Ваше ім'я:", font=FONT_MEDIUM, text_color=TEXT_COLOR).pack(
+            side="left", padx=10)
 
-        self.name_entry = ctk.CTkEntry(
-            self.name_frame,
-            font=FONT_MEDIUM,
-            width=300,
-            border_width=2,
-            fg_color="white"
-        )
+        self.name_entry = ctk.CTkEntry(self.name_frame, font=FONT_MEDIUM, width=300, border_width=2, fg_color="white")
         self.name_entry.pack(side="left", padx=10)
+        self.name_entry.bind("<Return>", lambda e: self.start_test())
 
         self.name_button = ctk.CTkButton(
-            self.name_frame,
-            text="🚀 Почати тест",
-            font=FONT_MEDIUM,
-            command=self.start_test,
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            height=60,
-            text_color="white"
+            self.name_frame, text="🚀 Почати тест", font=FONT_MEDIUM,
+            command=self.start_test, fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR,
+            height=60, text_color="white"
         )
         self.name_button.pack(side="left", padx=10)
         self.name_frame.grid(row=1, column=0, pady=20)
@@ -187,69 +146,40 @@ class BaseTestFrame(ctk.CTkFrame):
         self.test_frame.grid(row=2, column=0, sticky="nsew", padx=50, pady=20)
         self.test_frame.grid_columnconfigure(0, weight=1)
 
-        self.instruction_label = ctk.CTkLabel(
-            self.test_frame,
-            text="",
-            font=FONT_MEDIUM,
-            text_color=TEXT_COLOR,
-            wraplength=800
-        )
+        self.instruction_label = ctk.CTkLabel(self.test_frame, text="", font=FONT_MEDIUM, text_color=TEXT_COLOR,
+                                              wraplength=800)
         self.instruction_label.grid(row=0, column=0, pady=10)
 
-        self.display_label = ctk.CTkLabel(
-            self.test_frame,
-            text="",
-            font=("Arial", 72, "bold"),
-            text_color="#4B7BFF"
-        )
+        self.display_label = ctk.CTkLabel(self.test_frame, text="", font=("Arial", 72, "bold"), text_color="#4B7BFF")
         self.display_label.grid(row=1, column=0, pady=20)
 
-        self.timer_label = ctk.CTkLabel(
-            self.test_frame,
-            text="",
-            font=FONT_MEDIUM,
-            text_color="#FF6B6B"
-        )
+        self.timer_label = ctk.CTkLabel(self.test_frame, text="", font=FONT_MEDIUM, text_color="#FF6B6B")
         self.timer_label.grid(row=2, column=0, pady=10)
 
-        self.entry = ctk.CTkEntry(
-            self.test_frame,
-            font=FONT_MEDIUM,
-            width=400,
-            border_width=2,
-            fg_color="white"
-        )
+        self.entry = ctk.CTkEntry(self.test_frame, font=FONT_MEDIUM, width=400, border_width=2, fg_color="white")
+        self.entry.bind("<Return>", lambda e: self.check_answer())
 
         self.submit_button = ctk.CTkButton(
-            self.test_frame,
-            text="📤 Відправити",
-            font=FONT_MEDIUM,
-            command=self.check_answer,
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            height=60,
-            text_color="white"
+            self.test_frame, text="📤 Відправити", font=FONT_MEDIUM,
+            command=self.check_answer, fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR,
+            height=60, text_color="white"
         )
 
-        self.back_button = ctk.CTkButton(
-            self,
-            text="🔙 Головне меню",
-            font=FONT_MEDIUM,
-            command=self.back_to_menu,
-            fg_color="#F0F0F0",
-            hover_color="#E0E0E0",
-            text_color=TEXT_COLOR,
-            height=60,
-            border_width=0
-        )
-        self.back_button.grid(row=3, column=0, pady=20)
+        ctk.CTkButton(
+            self, text="🔙 Головне меню", font=FONT_MEDIUM,
+            command=self.back_to_menu, fg_color="#F0F0F0", hover_color="#E0E0E0",
+            text_color=TEXT_COLOR, height=60, border_width=0
+        ).grid(row=3, column=0, pady=20)
+
+    def on_show(self):
+        if self.name_entry.winfo_ismapped():
+            self.name_entry.focus_set()
 
     def start_test(self):
         name = self.name_entry.get().strip()
         if not name:
             messagebox.showwarning("Увага", "Будь ласка, введіть ім'я!")
             return
-
         self.username = name
         self.name_frame.grid_forget()
         self.instruction_label.configure(text="Приготуйтеся до першого ряду...")
@@ -259,8 +189,7 @@ class BaseTestFrame(ctk.CTkFrame):
         if self.current_length > 10:
             self.end_test()
             return
-
-        self.remaining_time = 5
+        self.remaining_time = get_display_time(self.current_length) // 1000
         self.current_sequence = generate_sequence(self.current_length)
         self.display_label.configure(text=self.current_sequence)
         self.timer_label.configure(text=f"Час: {self.remaining_time} сек")
@@ -279,23 +208,19 @@ class BaseTestFrame(ctk.CTkFrame):
 
     def prompt_answer(self):
         self.display_label.configure(text="")
-        prompt = f"Довжина: {self.current_length}\nВведіть запам'ятований ряд:"
-        self.instruction_label.configure(text=prompt)
+        self.instruction_label.configure(text=f"Довжина: {self.current_length}\nВведіть запам'ятований ряд:")
         self.timer_label.configure(text="")
         self.entry.grid(row=3, column=0, pady=10)
         self.submit_button.grid(row=4, column=0, pady=10)
+        self.entry.focus_set()
+        self.entry.icursor("end")
 
     def check_answer(self):
         user_input = self.entry.get().strip()
-        correct = (user_input == self.get_correct_answer())
+        correct = user_input == self.get_correct_answer()
         self.results[self.current_length] = correct
-
-        if correct:
-            messagebox.showinfo("Результат", "Правильно!")
-        else:
-            messagebox.showinfo("Результат",
-                                f"Неправильно!\nПравильний ряд: {self.get_correct_answer()}")
-
+        msg = "Правильно!" if correct else f"Неправильно!\nПравильний ряд: {self.get_correct_answer()}"
+        messagebox.showinfo("Результат", msg)
         self.current_length += 1
         self.instruction_label.configure(text="Приготуйтеся до наступного ряду...")
         self.entry.delete(0, "end")
@@ -314,8 +239,7 @@ class BaseTestFrame(ctk.CTkFrame):
             else:
                 break
 
-        m = 0
-        n = 0
+        m, n = 0, 0
         for length in range(A + 1, 11):
             if length in self.results:
                 m += 1 if self.results[length] else 0
@@ -323,15 +247,9 @@ class BaseTestFrame(ctk.CTkFrame):
 
         V = A + (m / n if n > 0 else 0)
         level = evaluate_level(V)
-
         result_text = (
-            f"Результати тесту:\n"
-            f"Тест: {self.test_name}\n"
-            f"Ім'я: {self.username}\n"
-            f"A = {A}\n"
-            f"m = {m}, n = {n}\n"
-            f"V = {V:.2f}\n"
-            f"Рівень: {level}"
+            f"Результати тесту:\nТест: {self.test_name}\nІм'я: {self.username}\n"
+            f"A = {A}\nm = {m}, n = {n}\nV = {V:.2f}\nРівень: {level}"
         )
 
         self.show_result_window(result_text)
@@ -343,9 +261,7 @@ class BaseTestFrame(ctk.CTkFrame):
         win = ctk.CTkToplevel(self)
         win.title("РЕЗУЛЬТАТИ ТЕСТУ")
         win.geometry("900x700")
-        win.configure(fg_color=BACKGROUND_COLOR)  # Устанавливаем фон окна
-
-        # Центрирование окна
+        win.configure(fg_color=BACKGROUND_COLOR)
         win.update_idletasks()
         width = win.winfo_width()
         height = win.winfo_height()
@@ -353,55 +269,24 @@ class BaseTestFrame(ctk.CTkFrame):
         y = (win.winfo_screenheight() // 2) - (height // 2)
         win.geometry(f'+{x}+{y}')
 
-        # Заголовок с иконкой (без фрейма)
-        emoji_label = ctk.CTkLabel(
-            win,
-            text="📝",
-            font=("Arial", 72),
-            text_color=BUTTON_COLOR,
-            fg_color="transparent"  # Прозрачный фон
-        )
-        emoji_label.pack(pady=(20, 0))
+        ctk.CTkLabel(win, text="📝", font=("Arial", 72), text_color=BUTTON_COLOR, fg_color="transparent").pack(
+            pady=(20, 0))
+        ctk.CTkLabel(win, text="РЕЗУЛЬТАТИ ТЕСТУ", font=("Arial", 42, "bold"), text_color=TEXT_COLOR,
+                     fg_color="transparent").pack(pady=(0, 20))
 
-        title = ctk.CTkLabel(
-            win,
-            text="РЕЗУЛЬТАТИ ТЕСТУ",
-            font=("Arial", 42, "bold"),
-            text_color=TEXT_COLOR,
-            fg_color="transparent"  # Прозрачный фон
-        )
-        title.pack(pady=(0, 20))
-
-        # Основное текстовое поле с белым фоном
         textbox = ctk.CTkTextbox(
-            win,
-            font=("Arial", 32),
-            wrap="word",
-            fg_color="white",
-            text_color=TEXT_COLOR,
-            border_width=3,
-            border_color="#E0E0E0",
-            activate_scrollbars=True,
-            spacing3=15,
-            height=400,
-            width=800
+            win, font=("Arial", 32), wrap="word", fg_color="white", text_color=TEXT_COLOR,
+            border_width=3, border_color="#E0E0E0", activate_scrollbars=True,
+            spacing3=15, height=400, width=800
         )
         textbox.pack(fill="both", expand=True, padx=40, pady=(0, 20))
         textbox.insert("1.0", text)
         textbox.configure(state="disabled")
 
-        # Кнопка OK
         btn = ctk.CTkButton(
-            win,
-            text="ОК",
-            command=win.destroy,
-            font=("Arial", 36, "bold"),
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            height=80,
-            width=200,
-            corner_radius=20,
-            text_color="white"
+            win, text="ОК", command=win.destroy, font=("Arial", 36, "bold"),
+            fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR,
+            height=80, width=200, corner_radius=20, text_color="white"
         )
         btn.pack(pady=30)
         btn.focus_set()
@@ -421,8 +306,7 @@ class BaseTestFrame(ctk.CTkFrame):
 
     def back_to_menu(self):
         if messagebox.askyesno("Підтвердження", "Вийти з тесту і повернутися в меню?"):
-            if self.timer_id:
-                self.after_cancel(self.timer_id)
+            if self.timer_id: self.after_cancel(self.timer_id)
             self.reset_test()
             self.controller.show_frame(MenuFrame)
 
@@ -441,14 +325,13 @@ class TestFrame2(BaseTestFrame):
 
     def prompt_answer(self):
         self.display_label.configure(text="")
-        prompt = (
-            f"Довжина: {self.current_length}\n"
-            "Введіть запам'ятований ряд у зворотному порядку:"
-        )
-        self.instruction_label.configure(text=prompt)
+        self.instruction_label.configure(
+            text=f"Довжина: {self.current_length}\nВведіть запам'ятований ряд у зворотному порядку:")
         self.timer_label.configure(text="")
         self.entry.grid(row=3, column=0, pady=10)
         self.submit_button.grid(row=4, column=0, pady=10)
+        self.entry.focus_set()
+        self.entry.icursor("end")
 
 
 class InfoFrame(ctk.CTkFrame):
@@ -460,62 +343,64 @@ class InfoFrame(ctk.CTkFrame):
     def create_widgets(self):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-
-        title = ctk.CTkLabel(
-            self,
-            text="📚 Інформація про тести",
-            font=FONT_LARGE,
-            text_color=TEXT_COLOR
-        )
-        title.grid(row=0, column=0, pady=(20, 30))
+        ctk.CTkLabel(self, text="📚 Інформація про тести", font=FONT_LARGE, text_color=TEXT_COLOR).grid(row=0, column=0,
+                                                                                                       pady=(20, 30))
 
         info_text = """
-        Ці тести створені для перевірки уваги та оперативної пам'яті.
+        Ці Тести вимірюють здатність до концентрації, швидкої обробки інформації та роботи зі зростаючою складністю завдань.
 
-        🔢 Тест "Метод відтворення рядів":
+    🔢 Тест "Метод відтворення рядів"
         - Вам показують ряд чисел (від 4 до 10 цифр) на 5 секунд.
         - Потім потрібно ввести ці числа в тому ж порядку.
 
-        🔄 Тест "Відтворення у зворотному порядку":
+    🔄 Тест "Відтворення у зворотному порядку":
         - Аналогічний, але числа треба вводити у зворотному порядку.
 
-        📈 Формула оцінки:
+    📈 Формула оцінки:
         V = A + (m/n), де:
         - A – максимальна довжина, яку ви вгадали правильно.
         - m – кількість вдалих спроб для довжин > A.
         - n – загальна кількість спроб для довжин > A.
 
-        🏆 Рівні:
+    🏆 Рівні:
         - V < 4: Низький рівень пам'яті
         - 4 ≤ V < 6: Середній рівень
         - V ≥ 6: Високий рівень
+        
+    📊 Для чого рахувати Стандартне відхилення (Std)?
+        1. Оцінка стабільності результатів
+            - Низький Std (напр. 0.5): Результати стабільні (напр. V = 4.2, 4.3, 4.1).
+            - Високий Std (напр. 1.8): Результати коливаються (напр. V = 3.0, 5.5, 4.0).
+            
+        2. Виявлення аномалій
+            - Різкі стрибки в результатах (напр. V = 2.0 → 6.0 → 3.5) дають високий Std.
+            Причина: Технічні помилки, зовнішні фактори (шум, стрес).
+            
+        3. Відстеження прогресу
+            - Стандартне відхилення ↓ (напр. з 1.5 до 0.7): Користувач стає стабільнішим.
+            - Стандартне відхилення ↑: Потрібно коригувати тренування.
+            
+        4. Персоналізація навчання
+            - Для високого Std: Коротші/частіші тести та Вправи на концентрацію.
+            - Для низького Std: Складніші завдання.
+        
+    💡 Розробники:
+        студенти ННІІТтаІП групи КНмаг11 Григорчук Катерина та Євтушок Емілія
         """
 
         text_area = ctk.CTkTextbox(
-            self,
-            font=FONT_SMALL,
-            wrap="word",
-            fg_color="white",
-            text_color=TEXT_COLOR,
-            border_width=2,
-            border_color="#E0E0E0",
-            activate_scrollbars=True
+            self, font=FONT_SMALL, wrap="word", fg_color="white", text_color=TEXT_COLOR,
+            border_width=2, border_color="#E0E0E0", activate_scrollbars=True
         )
         text_area.grid(row=1, column=0, sticky="nsew", padx=50, pady=(0, 20))
         text_area.insert("1.0", info_text)
         text_area.configure(state="disabled")
 
-        back_button = ctk.CTkButton(
-            self,
-            text="🔙 Головне меню",
-            font=FONT_MEDIUM,
+        ctk.CTkButton(
+            self, text="🔙 Головне меню", font=FONT_MEDIUM,
             command=lambda: self.controller.show_frame(MenuFrame),
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            height=60,
-            text_color="white"
-        )
-        back_button.grid(row=2, column=0, pady=20)
+            fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR, height=60, text_color="white"
+        ).grid(row=2, column=0, pady=20)
 
 
 class ResultsFrame(ctk.CTkFrame):
@@ -528,115 +413,52 @@ class ResultsFrame(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Заголовок с крупным смайликом
         title_frame = ctk.CTkFrame(self, fg_color="white")
         title_frame.grid(row=0, column=0, pady=(20, 10))
+        ctk.CTkLabel(title_frame, text="📊", font=("Arial", 72), text_color="#4B7BFF").pack(side="left", padx=20)
+        ctk.CTkLabel(title_frame, text="Результати тестів", font=("Arial", 30, "bold"), text_color=TEXT_COLOR).pack(
+            side="left")
 
-        emoji_label = ctk.CTkLabel(
-            title_frame,
-            text="📊",
-            font=("Arial", 72),
-            text_color="#4B7BFF"
-        )
-        emoji_label.pack(side="left", padx=20)
-
-        title = ctk.CTkLabel(
-            title_frame,
-            text="Результати тестів",
-            font=("Arial", 30, "bold"),
-            text_color=TEXT_COLOR
-        )
-        title.pack(side="left")
-
-        # Основное текстовое поле
         self.text_area = ctk.CTkTextbox(
-            self,
-            font=("Arial", 24),
-            wrap="word",
-            fg_color="white",
-            text_color=TEXT_COLOR,
-            border_width=2,
-            border_color="#E0E0E0",
-            activate_scrollbars=True,
-            spacing3=10
+            self, font=("Arial", 24), wrap="word", fg_color="white", text_color=TEXT_COLOR,
+            border_width=2, border_color="#E0E0E0", activate_scrollbars=True, spacing3=10
         )
         self.text_area.grid(row=1, column=0, sticky="nsew", padx=50, pady=(0, 20))
         self.text_area.configure(state="disabled")
 
-        # Кнопки
         button_frame = ctk.CTkFrame(self, fg_color="white")
         button_frame.grid(row=2, column=0, pady=10)
 
-        clear_btn = ctk.CTkButton(
-            button_frame,
-            text="🧹 Очистити результати",
-            font=("Arial", 24),
-            command=self.clear_results,
-            fg_color="#FF7A9C",
-            hover_color="#FF9BB8",
-            height=80,
-            text_color="white",
-            corner_radius=15
-        )
-        clear_btn.pack(side="left", padx=20)
+        buttons = [
+            ("🧹 Очистити результати", self.clear_results, "#FF7A9C", "#FF9BB8"),
+            ("📈 Аналіз трендів", self.analyze_results, BUTTON_COLOR, HOVER_COLOR),
+            ("🔙 Головне меню", lambda: self.controller.show_frame(MenuFrame), "#F0F0F0", "#E0E0E0")
+        ]
 
-        analysis_btn = ctk.CTkButton(
-            button_frame,
-            text="📈 Аналіз трендів",
-            font=("Arial", 24),
-            command=self.analyze_results,
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            height=80,
-            text_color="white",
-            corner_radius=15
-        )
-        analysis_btn.pack(side="left", padx=20)
-
-        back_button = ctk.CTkButton(
-            button_frame,
-            text="🔙 Головне меню",
-            font=("Arial", 24),
-            command=lambda: self.controller.show_frame(MenuFrame),
-            fg_color="#F0F0F0",
-            hover_color="#E0E0E0",
-            height=80,
-            text_color=TEXT_COLOR,
-            corner_radius=15
-        )
-        back_button.pack(side="left", padx=20)
+        for text, command, fg, hover in buttons:
+            btn = ctk.CTkButton(
+                button_frame, text=text, font=("Arial", 24), command=command,
+                fg_color=fg, hover_color=hover, height=80, corner_radius=15,
+                text_color="white" if fg != "#F0F0F0" else TEXT_COLOR
+            )
+            btn.pack(side="left", padx=20)
 
     def on_show(self):
         self.load_results()
-        # Новый метод центрирования для CustomTkinter
-        self.center_window()
-
-    def center_window(self):
-        """Центрирование окна на экране"""
-        self.controller.update_idletasks()
-        width = self.controller.winfo_width()
-        height = self.controller.winfo_height()
-        x = (self.controller.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.controller.winfo_screenheight() // 2) - (height // 2)
-        self.controller.geometry(f'+{x}+{y}')
 
     def load_results(self):
         self.text_area.configure(state="normal")
         self.text_area.delete("1.0", "end")
-
         if os.path.exists("results.txt"):
             with open("results.txt", "r", encoding="utf-8") as f:
-                content = f.read()
-                self.text_area.insert("1.0", content)
+                self.text_area.insert("1.0", f.read())
         else:
             self.text_area.insert("1.0", "Поки що немає збережених результатів.")
-
         self.text_area.configure(state="disabled")
 
     def clear_results(self):
         if messagebox.askyesno("Підтвердження", "Ви впевнені, що хочете очистити результати?"):
-            with open("results.txt", "w", encoding="utf-8") as f:
-                f.write("")
+            with open("results.txt", "w") as f: f.write("")
             self.load_results()
             messagebox.showinfo("Результати", "Результати очищено.")
 
@@ -646,66 +468,47 @@ class ResultsFrame(ctk.CTkFrame):
             messagebox.showinfo("Аналіз", "Поки що немає даних для аналізу.")
             return
 
-        analysis_text = (
-            f"Аналіз трендів:\n\n"
-            f"Загальна кількість тестів: {analysis_data['total_tests']}\n"
-            f"Загальне середнє V: {analysis_data['overall_avg']:.2f}\n"
-            f"Загальне стандартне відхилення: {analysis_data['overall_std']:.2f}\n\n"
-            "За тестами:\n"
-        )
+        analysis_text = f"""Аналіз трендів:\n\nЗагальна кількість тестів: {analysis_data['total_tests']}
+Загальне середнє V: {analysis_data['overall_avg']:.2f}
+Загальне стандартне відхилення: {analysis_data['overall_std']:.2f}\n\nЗа тестами:\n"""
 
         for test, stats in analysis_data["tests_stats"].items():
-            analysis_text += (
-                f"{test}:\n"
-                f"  Кількість: {stats['count']}\n"
-                f"  Середнє V: {stats['avg']:.2f}\n"
-                f"  Std: {stats['std']:.2f}\n\n"
-            )
+            analysis_text += f"{test}:\n  Кількість: {stats['count']}\n  Середнє V: {stats['avg']:.2f}\n  Стандартне відхилення: {stats['std']:.2f}\n\n"
 
         analysis_text += "За користувачами:\n"
         for user, stats in analysis_data["users_stats"].items():
-            analysis_text += (
-                f"{user}:\n"
-                f"  Кількість: {stats['count']}\n"
-                f"  Середнє V: {stats['avg']:.2f}\n"
-                f"  Std: {stats['std']:.2f}\n\n"
-            )
+            analysis_text += f"{user}:\n  Кількість: {stats['count']}\n  Середнє V: {stats['avg']:.2f}\n  Стандартне відхилення: {stats['std']:.2f}\n\n"
 
         win = ctk.CTkToplevel(self)
         win.title("Аналіз трендів")
         win.geometry("900x800")
-
-        # Центрирование окна анализа
+        win.transient(self)
+        win.grab_set()
         win.update_idletasks()
         width = win.winfo_width()
         height = win.winfo_height()
-        x = (win.winfo_screenwidth() // 2) - (width // 2)
-        y = (win.winfo_screenheight() // 2) - (height // 2)
-        win.geometry(f'+{x}+{y}')
+        x = (win.winfo_screenwidth() - width) // 2
+        y = (win.winfo_screenheight() - height) // 2
+        win.geometry(f"+{x}+{y}")
+        win.lift()
 
-        # Крупный текст в окне анализа
         textbox = ctk.CTkTextbox(
-            win,
-            font=("Arial", 24),
-            wrap="word",
-            spacing3=10
+            win, font=("Arial", 24), wrap="word", spacing3=10,
+            fg_color="white", border_width=2, border_color="#E0E0E0"
         )
-        textbox.pack(fill="both", expand=True, padx=30, pady=30)
+        textbox.pack(fill="both", expand=True, padx=20, pady=20)
         textbox.insert("1.0", analysis_text)
         textbox.configure(state="disabled")
 
         btn = ctk.CTkButton(
-            win,
-            text="ОК",
-            command=win.destroy,
-            font=("Arial", 24),
-            height=80,
-            corner_radius=15,
-            fg_color=BUTTON_COLOR,
-            hover_color=HOVER_COLOR,
-            text_color="white"
+            win, text="ОК", command=win.destroy, font=("Arial", 24, "bold"),
+            fg_color=BUTTON_COLOR, hover_color=HOVER_COLOR,
+            height=60, width=200, corner_radius=15, text_color="white"
         )
-        btn.pack(pady=20)
+        btn.pack(pady=(0, 20))
+        btn.focus_set()
+
+
 if __name__ == "__main__":
     app = MainApplication()
     app.mainloop()
