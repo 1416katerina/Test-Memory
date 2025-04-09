@@ -2,6 +2,8 @@ import customtkinter as ctk
 from tkinter import messagebox
 from functionality import evaluate_level, generate_sequence, save_result, analyze_results
 import os
+from functionality import evaluate_level, generate_sequence, save_result, analyze_results, get_display_time
+
 
 # Настройки интерфейса
 ctk.set_appearance_mode("light")
@@ -19,7 +21,7 @@ class MainApplication(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("🧠 ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ")  # Все заглавные для лучшей читаемости
-        self.geometry("1440x1080")  # Увеличенный размер окна
+        self.geometry("700x300")  # Увеличенный размер окна
         self.minsize(1200, 900)
 
         # Установка иконки приложения (если есть файл icon.ico)
@@ -137,7 +139,7 @@ class BaseTestFrame(ctk.CTkFrame):
         self.current_length = 4
         self.results = {}
         self.current_sequence = ""
-        self.remaining_time = 5
+        self.remaining_time = get_display_time(self.current_length) // 1000
         self.timer_id = None
 
         self.create_widgets()
@@ -262,7 +264,7 @@ class BaseTestFrame(ctk.CTkFrame):
             self.end_test()
             return
 
-        self.remaining_time = 5
+        self.remaining_time = get_display_time(self.current_length) // 1000
         self.current_sequence = generate_sequence(self.current_length)
         self.display_label.configure(text=self.current_sequence)
         self.timer_label.configure(text=f"Час: {self.remaining_time} сек")
