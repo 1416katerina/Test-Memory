@@ -15,21 +15,41 @@ TEXT_COLOR = "#333333"
 BACKGROUND_COLOR = "#F5F5F5"  # Слегка серый фон для лучшего контраста
 
 
+import customtkinter as ctk
+
 class MainApplication(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("🧠 ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ")  # Все заглавные для лучшей читаемости
-        self.geometry("1440x1080")  # Увеличенный размер окна
-        self.minsize(1200, 900)
+        self.title("🧠 ТЕСТИ НА УВАГУ ТА ПАМ'ЯТЬ")
 
-        # Установка иконки приложения (если есть файл icon.ico)
+        # Получаем размеры экрана
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Устанавливаем размеры окна - 70% от экрана, но не меньше 900x900
+        self.width = max(int(screen_width * 0.6), 600)
+        self.height = max(int(screen_height * 0.7), 600)
+
+        # Ограничиваем максимальные размеры (например, 90% от экрана)
+        self.max_width = int(screen_width * 0.9)
+        self.max_height = int(screen_height * 0.9)
+
+        # Устанавливаем минимальные и максимальные размеры окна
+        self.minsize(1100, 900)
+        self.maxsize(self.max_width, self.max_height)
+
+        # Устанавливаем геометрию окна
+        self.geometry(f"{self.width}x{self.height}")
+        self.center_window()
+
         try:
             self.iconbitmap("icon.ico")
         except:
             pass
 
-        self.configure(fg_color=BACKGROUND_COLOR)  # Фон всего приложения
+        self.configure(fg_color="#f5f5f5")  # Или BACKGROUND_COLOR
 
+        # Поддержка адаптивного изменения размера
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -45,23 +65,23 @@ class MainApplication(ctk.CTk):
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame(MenuFrame)
-        self.center_window()
 
     def center_window(self):
-        """Центрирование главного окна"""
+        """Центрирует окно на экране"""
         self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        x = (self.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.winfo_screenheight() // 2) - (height // 2)
-        self.geometry(f"+{x}+{y}")
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        x = (screen_width - self.width) // 2
+        y = (screen_height - self.height) // 2
+
+        self.geometry(f"{self.width}x{self.height}+{x}+{y}")
 
     def show_frame(self, frame_class):
         frame = self.frames[frame_class]
         if hasattr(frame, "on_show"):
             frame.on_show()
         frame.tkraise()
-
 
 class MenuFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
