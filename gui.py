@@ -11,7 +11,7 @@ ctk.set_default_color_theme("blue")
 ctk.deactivate_automatic_dpi_awareness()
 
 FONT_LARGE = ("Arial", 38)
-FONT_MEDIUM = ("Arial", 32)
+FONT_MEDIUM = ("Arial", 31)
 FONT_SMALL = ("Arial", 28)
 BUTTON_COLOR = "#4B7BFF"
 HOVER_COLOR = "#3A6BEF"
