@@ -3,10 +3,10 @@ import os
 import statistics
 from datetime import datetime
 
-# Налаштування тестів
+
 MIN_LENGTH = 4
 MAX_LENGTH = 10
-DISPLAY_TIME = 5000  # базовий час показу ряду у мілісекундах (для ряду довжиною MIN_LENGTH)
+DISPLAY_TIME = 5000
 RESULTS_FILE = "results.txt"
 
 def evaluate_level(V):
